@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
-
-#使用需要首先安装fir.im的指令支持
-#需要安装pyobjc
-#需要设置相关参数
-
+import optparse
 import os
 import sys
-import Foundation
-import objc
-import AppKit
+import getpass
+import json
 import hashlib
 import smtplib
 from email.mime.text import MIMEText
@@ -16,38 +11,218 @@ from email.mime.multipart import MIMEMultipart
 from email.header import Header
 from datetime import date, time, datetime, timedelta
 
+#配置文件路径
+commendPath = "/Users/" + getpass.getuser() + "/"
+commendFinderName = ".ipa_build_py"
+commendFullPath = commendPath + commendFinderName
+configFileName = "ipaBuildPyConfigFile.json"
+commendFilePath = commendFullPath + "/" + configFileName
+
 #工程名
-targetName = "BossZP"
+targetName = None
 #临时文件夹名称
-m = hashlib.md5()
-m.update(targetName)
-tempFinder = m.hexdigest()
+tempFinder = None
 #git地址
-gitPath = "http://xxxxxxxxxxxxxxxxxxxxx/mobile_ios.git"
+gitPath = None
 #checkout后的本地路径
-target_path = "/Users/yuyang/Documents"
+target_path = commendPath + "Documents"
 #主路径
-mainPath = target_path + '/' + tempFinder
+mainPath = None
 #证书名
-certificateName = "iPhone Developer: MAOSHENG YANG (xxxxxxxx)"
+certificateName = None
 #firToken
-firToken = "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+firToken = None
 #邮件参数
-emailFromUser="xxxxxxxxxxxx@163.com"
-emailToUser="xxxxxxxxxx@kanzhun.com"
-emailPassword="xxxxxxxxxxxxxxx"
-emailHost="smtp.163.com"
+emailFromUser = None
+emailToUser = None
+emailPassword = None
+emailHost = None
+
+#版本
+tag = "master"
+
 #钥匙链相关
 keychainPath="~/Library/Keychains/login.keychain"
 keychainPassworld=""
 
+#显示已有的参数
+def showParameter():
+    print "targetName       :%s"%targetName
+    print "gitPath          :%s"%gitPath
+    print "certificateName  :%s"%certificateName
+    print "firToken         :%s"%firToken
+    print "emailFromUser    :%s"%emailFromUser
+    print "emailToUser      :%s"%emailToUser
+    print "emailPassword    :%s"%emailPassword
+    print "emailHost        :%s"%emailHost
+    
+#设置参数
+def setParameter():
+    global targetName
+    global tempFinder
+    global mainPath
+    global gitPath
+    global certificateName
+    global firToken
+    global emailFromUser
+    global emailToUser
+    global emailPassword
+    global emailHost
+    targetName = raw_input("input targetName:")
+    if not isNone(targetName):
+        m = hashlib.md5()
+        m.update('BossZP')
+        tempFinder = m.hexdigest()
+        mainPath = commendPath + 'Documents' + '/' + tempFinder
+    gitPath = raw_input("input gitPath:")
+    certificateName = raw_input("input certificateName:")
+    firToken = raw_input("input firToken:")
+    emailFromUser = raw_input("input emailFromUser:")
+    emailToUser = raw_input("input emailToUser:")
+    emailPassword = raw_input("input emailPassword:")
+    emailHost = raw_input("input emailHost:")
+    #保存到本地
+    writeJsonFile()
+    
+#判断字符串是否为空
+def isNone(para):
+    if para == None or len(para) == 0:
+        return True
+    else:
+        return False
+    
+#是否需要设置参数
+def isNeedSetParameter():
+    if isNone(targetName) or isNone(gitPath) or isNone(certificateName) or isNone(firToken) or isNone(emailFromUser) or isNone(emailToUser) or isNone(emailPassword) or isNone(emailHost) :
+        return True
+    else :
+        return False
+        
+
+#参数设置
+def setOptparse():
+    p = optparse.OptionParser()
+    #参数配置指令
+    p.add_option("--config","-c",action="store_true", default=None,help = "config User's data")
+    #获取所有版本
+    p.add_option("--showTags","-s",action="store_true", default=None,help = "show all tags")
+    #设置版本指令
+    p.add_option('--tag','-t',default="master",help = "app's tag")
+    options,arguments = p.parse_args()
+    global tag
+    tag = options.tag
+    #配置信息
+    if options.config == True and len(arguments) == 0 :
+        configMethod()
+    #获取所有版本
+    if options.showTags == True and len(arguments) == 0 :
+        gitShowTags()
+   
+#配置信息 
+def configMethod():
+    os.system("clear")
+    readJsonFile()
+    print "您的参数如下:"
+    print "************************************"
+    showParameter()
+    print "************************************"
+    setParameter()
+    sys.exit()
+    
+#设置配置文件路径
+def createFinder():
+    #没有文件夹，创建文件夹
+    if not os.path.exists(commendPath + commendFinderName):
+        os.system("cd %s;mkdir %s"%(commendPath,commendFinderName))
+    #没有文件，创建文件
+    if not os.path.isfile(commendFilePath):
+        os.system("cd %s;touch %s"%(commendFullPath,configFileName))
+        initJsonFile()
+    return
+    
+#初始化json配置文件
+def initJsonFile():
+    fout = open(commendFilePath,'w')
+    js = {}
+    js["targetName"]      = None
+    js["gitPath"]         = None
+    js["certificateName"] = None
+    js["firToken"]        = None
+    js["emailFromUser"]   = None
+    js["emailToUser"]     = None
+    js["emailPassword"]   = None
+    js["emailHost"]       = None
+    js["tempFinder"]      = None
+    js["mainPath"]        = None
+    outStr = json.dumps(js,ensure_ascii = False)
+    fout.write(outStr.strip().encode('utf-8') + '\n')
+    fout.close()
+    
+#读取json文件
+def readJsonFile():
+    fin = open(commendFilePath,'r')
+    for eachLine in fin:
+        line = eachLine.strip().decode('utf-8')
+        line = line.strip(',')
+        js = None
+        try:
+            js = json.loads(line)
+            global targetName
+            global tempFinder
+            global mainPath
+            global gitPath
+            global certificateName
+            global firToken
+            global emailFromUser
+            global emailToUser
+            global emailPassword
+            global emailHost
+            targetName = js["targetName"]
+            gitPath = js["gitPath"]
+            certificateName = js["certificateName"]
+            firToken = js["firToken"]
+            emailFromUser = js["emailFromUser"]
+            emailToUser = js["emailToUser"]
+            emailPassword = js["emailPassword"]
+            emailHost = js["emailHost"]
+            tempFinder = js["tempFinder"]
+            mainPath = js["mainPath"]
+        except Exception,e:
+            print Exception
+            print e
+            continue
+    fin.close()
+    
+#写json文件
+def writeJsonFile():
+    showParameter()
+    try:
+        fout = open(commendFilePath,'w')
+        js = {}
+        js["targetName"] = targetName
+        js["gitPath"] = gitPath
+        js["certificateName"] = certificateName
+        js["firToken"] = firToken
+        js["emailFromUser"] = emailFromUser
+        js["emailToUser"] = emailToUser
+        js["emailPassword"] = emailPassword
+        js["emailHost"] = emailHost
+        js["tempFinder"] = tempFinder
+        js["mainPath"] = mainPath
+        outStr = json.dumps(js,ensure_ascii = False)
+        fout.write(outStr.strip().encode('utf-8') + '\n')
+        fout.close()
+    except Exception,e:
+        print Exception
+        print e
+        
 #删除文件夹
 def rmoveFinder():
     os.system("rm -r -f %s"%mainPath)
     return
     
 #创建文件夹
-def createFinder():
+def createFileFinder():
     os.system("mkdir %s"%mainPath)
     return
     
@@ -74,6 +249,17 @@ def gitClone():
     os.system ('git clone %s %s'%(gitPath,mainPath))
     return
     
+#显示所有版本
+def gitShowTags():
+    os.system("clear")
+    readJsonFile()
+    print "所有的版本"
+    print mainPath
+    print "************************************"
+    os.system ('cd %s;git tag'%mainPath)
+    print "************************************"
+    sys.exit()
+
 #pull工程
 def gitPull():
     os.system("cd %s;git reset --hard;git pull"%mainPath)
@@ -148,21 +334,27 @@ def cerateIPA():
     
 #上传
 def uploadToFir():
+    httpAddress = None
     if os.path.exists("%s/%s.ipa"%(mainPath,targetName)):
-        os.system("fir p '%s/%s.ipa' -T '%s'"%(mainPath,targetName,firToken))
+        ret = os.popen("fir p '%s/%s.ipa' -T '%s'"%(mainPath,targetName,firToken))
+        for info in ret.readlines():
+            if "Published succeed" in info:
+                httpAddress = info
+                print httpAddress
+                break
     else:
         print "没有找到ipa文件"
-    return
+    return httpAddress
         
 #发邮件给测试不带附件
-def sendEmail():
+def sendEmail(text):
     if not os.path.exists("%s/%s.ipa"%(mainPath,targetName)):
         print "没有找到ipa文件"
         return
-    msg = MIMEText('地址:http://fir.im/xxxx 密码:xxxx','text','utf-8')
+    msg = MIMEText('地址:%s'%text,'text','utf-8')
     msg['to'] = emailToUser
     msg['from'] = emailFromUser
-    msg['subject'] = '地址:http://fir.im/xxxx 密码:xxxx'
+    msg['subject'] = '地址:%s'%text
     try:
         server = smtplib.SMTP()
         server.connect(emailHost)
@@ -173,45 +365,6 @@ def sendEmail():
     except Exception, e:  
         print str(e)
     return
-    
-#发邮件给测试带附件
-def sendEmailWithAtt():
-    #创建一个带附件的实例
-    msg = MIMEMultipart()
-    filePath="%s/%s.ipa"%(mainPath,targetName)
-    att1 = MIMEText(open(filePath, 'rb').read(), 'base64', 'gb2312')
-    att1["Content-Type"] = 'application/octet-stream'
-    att1["Content-Disposition"] = 'attachment; filename="%s.ipa"'%targetName
-    msg.attach(att1)
-    msg['to'] = emailToUser
-    msg['from'] = emailFromUser
-    msg['subject'] = '地址:http://fir.im/xxxx 密码:xxxx'
-    try:
-        server = smtplib.SMTP()
-        server.connect(emailHost)
-        server.login(emailFromUser,emailPassword)
-        server.sendmail(msg['from'], msg['to'],msg.as_string())
-        server.quit()
-        print '发送成功'
-    except Exception, e:  
-        print str(e)
-        sendEmail()
-    return
-    
-#发通知给你的mac
-def notify(self, title, subtitle, text, url):
-    NSUserNotification = objc.lookUpClass('NSUserNotification')
-    NSUserNotificationCenter = objc.lookUpClass('NSUserNotificationCenter')
-    notification = NSUserNotification.alloc().init()
-    notification.setTitle_(str(title))
-    notification.setSubtitle_(str(subtitle))
-    notification.setInformativeText_(str(text))
-    notification.setSoundName_("NSUserNotificationDefaultSoundName")
-    notification.setHasActionButton_(True)
-    notification.setOtherButtonTitle_("View")
-    notification.setUserInfo_({"action":"open_url", "value":url})
-    NSUserNotificationCenter.defaultUserNotificationCenter().setDelegate_(self)
-    NSUserNotificationCenter.defaultUserNotificationCenter().scheduleNotification_(notification)
     
 #定时任务
 def runTask(func, day=0, hour=0, min=0, second=0):
@@ -241,51 +394,28 @@ def runTask(func, day=0, hour=0, min=0, second=0):
           # Continue next iteration
           continue
 
-#获取设置线上线下参数
-def getPara():
-    isOnline = 0
-    if __name__=="__main__":   
-        if len(sys.argv)>1: 
-            if int(sys.argv[1]) == 1:
-                isOnline = 1
-    path = "%s/%s/Supports/Constants.h"%(mainPath,targetName)
-    file_object = open(path)
-    try:
-        all_the_text=file_object.read()
-        """      
-        if '//#define DEBUG_FILE  1' in all_the_text:
-            all_the_text=all_the_text.replace("//#define DEBUG_FILE  1", "#define DEBUG_FILE  1")
-        if '#define DEBUG_TESTSERVER' in all_the_text and isOnline:
-            all_the_text=all_the_text.replace("#define DEBUG_TESTSERVER", "//#define DEBUG_TESTSERVER")
-        if '//#define DEBUG_TESTSERVER' in all_the_text and not isOnline:
-            all_the_text=all_the_text.replace("//#define DEBUG_TESTSERVER", "#define DEBUG_TESTSERVER")
-        if 'wx9e569a13d211567d' in all_the_text and not isOnline:
-            all_the_text=all_the_text.replace("xxxxxxxxxx", "xxxxxxxxxx")
-        """
-                
-    finally:
-        file_object.close()
-       
-    file_object = open(path,'w')
-    try:
-        file_object.write(all_the_text)
-    finally:
-        file_object.close()
-    return
     
 def setVersion():
-    if __name__=="__main__":   
-        if len(sys.argv)>2: 
-            if len(str(sys.argv[2]))>0:
-                setGitVersion(str(sys.argv[2]))
-        else:
-            setGitVersionMaster()
+    global tag
+    setGitVersion(tag)
     return
 
-def start():
+#主函数
+def main():
+    #设置配置文件路径
+    createFinder()
+    #参数设置
+    setOptparse()
+    #读取json文件
+    readJsonFile()
+    #是否需要设置参数
+    if isNeedSetParameter():
+        print "您需要设置参数,您的参数如下(使用 --config 或者 -c):"
+        showParameter()
+        sys.exit()
     #获取最新代码
     if not isFinderExists():
-        createFinder()
+        createFileFinder()
         gitClone()
     else:
         gitPull()
@@ -296,8 +426,6 @@ def start():
     allowKeychain()
     #clear pbxproj文件
     clearPbxproj()
-    #获取参数
-    getPara()
     #clean工程
     cleanPro()
     #编译
@@ -305,15 +433,10 @@ def start():
     #生成ipa文件
     cerateIPA()
     #上传到fir.im
-    uploadToFir()
+    httpAddress = uploadToFir()
     #发邮件给测试
-    sendEmail()
+    if not isNone(httpAddress):
+        sendEmail(httpAddress)
     return
-   
-def main():
-    start()
-    runTask(start, day=0, hour=6, min=0,second=0)
-    return
-    
-#程序开始
-start()
+
+main()
