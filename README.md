@@ -57,6 +57,8 @@ emailHost:邮箱的host，可以去邮箱网页查看,如：我的是smtp.163.co
 
 -t TAG, --tag=TAG     设置打包时的版本
 
+● 如果你不喜欢我把放在Documents下面，你可以把脚本的第28行改成你喜欢的目录，如:target_path = "/Users/yuyang/clone/BossZP"
+
 ###你可以这样使用:
 
 python ipa.py -h

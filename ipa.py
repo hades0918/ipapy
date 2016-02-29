@@ -351,10 +351,10 @@ def sendEmail(text):
     if not os.path.exists("%s/%s.ipa"%(mainPath,targetName)):
         print "没有找到ipa文件"
         return
-    msg = MIMEText('地址:%s'%text,'text','utf-8')
+    msg = MIMEText('地址:%s'%text,'plain','utf-8')
     msg['to'] = emailToUser
     msg['from'] = emailFromUser
-    msg['subject'] = '地址:%s'%text
+    msg['subject'] = '新的测试包已经上传'
     try:
         server = smtplib.SMTP()
         server.connect(emailHost)
