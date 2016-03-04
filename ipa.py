@@ -43,18 +43,19 @@ tag = "master"
 
 #钥匙链相关
 keychainPath="~/Library/Keychains/login.keychain"
-keychainPassworld=""
+keychainPassword=""
 
 #显示已有的参数
 def showParameter():
-    print "targetName       :%s"%targetName
-    print "gitPath          :%s"%gitPath
-    print "certificateName  :%s"%certificateName
-    print "firToken         :%s"%firToken
-    print "emailFromUser    :%s"%emailFromUser
-    print "emailToUser      :%s"%emailToUser
-    print "emailPassword    :%s"%emailPassword
-    print "emailHost        :%s"%emailHost
+    print "targetName                 :%s"%targetName
+    print "gitPath                    :%s"%gitPath
+    print "certificateName            :%s"%certificateName
+    print "firToken                   :%s"%firToken
+    print "emailFromUser              :%s"%emailFromUser
+    print "emailToUser                :%s"%emailToUser
+    print "emailPassword              :%s"%emailPassword
+    print "emailHost                  :%s"%emailHost
+    print "keychainPassword(Optional) :%s"%keychainPassword
     
 #设置参数
 def setParameter():
@@ -68,6 +69,7 @@ def setParameter():
     global emailToUser
     global emailPassword
     global emailHost
+    global keychainPassword
     targetName = raw_input("input targetName:")
     if not isNone(targetName):
         m = hashlib.md5()
@@ -81,6 +83,7 @@ def setParameter():
     emailToUser = raw_input("input emailToUser:")
     emailPassword = raw_input("input emailPassword:")
     emailHost = raw_input("input emailHost:")
+    keychainPassword = raw_input("input keychainPassword:")
     #保存到本地
     writeJsonFile()
     
@@ -144,16 +147,17 @@ def createFinder():
 def initJsonFile():
     fout = open(commendFilePath,'w')
     js = {}
-    js["targetName"]      = None
-    js["gitPath"]         = None
-    js["certificateName"] = None
-    js["firToken"]        = None
-    js["emailFromUser"]   = None
-    js["emailToUser"]     = None
-    js["emailPassword"]   = None
-    js["emailHost"]       = None
-    js["tempFinder"]      = None
-    js["mainPath"]        = None
+    js["targetName"]       = None
+    js["gitPath"]          = None
+    js["certificateName"]  = None
+    js["firToken"]         = None
+    js["emailFromUser"]    = None
+    js["emailToUser"]      = None
+    js["emailPassword"]    = None
+    js["emailHost"]        = None
+    js["tempFinder"]       = None
+    js["mainPath"]         = None
+    js["keychainPassword"] = None
     outStr = json.dumps(js,ensure_ascii = False)
     fout.write(outStr.strip().encode('utf-8') + '\n')
     fout.close()
@@ -177,6 +181,7 @@ def readJsonFile():
             global emailToUser
             global emailPassword
             global emailHost
+            global keychainPassword
             targetName = js["targetName"]
             gitPath = js["gitPath"]
             certificateName = js["certificateName"]
@@ -187,6 +192,7 @@ def readJsonFile():
             emailHost = js["emailHost"]
             tempFinder = js["tempFinder"]
             mainPath = js["mainPath"]
+            keychainPassword = js["keychainPassword"]
         except Exception,e:
             print Exception
             print e
@@ -209,6 +215,7 @@ def writeJsonFile():
         js["emailHost"] = emailHost
         js["tempFinder"] = tempFinder
         js["mainPath"] = mainPath
+        js["keychainPassword"] = keychainPassword
         outStr = json.dumps(js,ensure_ascii = False)
         fout.write(outStr.strip().encode('utf-8') + '\n')
         fout.close()
@@ -246,7 +253,7 @@ def isFinderExists():
 
 #clone工程
 def gitClone():
-    os.system ('git clone %s %s'%(gitPath,mainPath))
+    os.system ('git clone %s %s --depth 1'%(gitPath,mainPath))
     return
     
 #显示所有版本
@@ -304,7 +311,7 @@ def clearPbxproj():
 
 def allowKeychain():
     # User interaction is not allowed
-    os.system("security unlock-keychain -p '%s' %s"%(keychainPassworld,keychainPath))
+    os.system("security unlock-keychain -p '%s' %s"%(keychainPassword,keychainPath))
     return
 
 #编译获取.app文件和dsym

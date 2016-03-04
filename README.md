@@ -46,6 +46,7 @@ emailPassword:我的邮箱的密码
 
 emailHost:邮箱的host，可以去邮箱网页查看,如：我的是smtp.163.com
 
+keychainPassword:(选填)远程SSH连接打包的话需要设置这个参数，内容为你电脑的密码
 
 4.配置完信息，可以通过 --help 或者 -h 查看基本的使用方法
 
@@ -79,7 +80,12 @@ python ipa.py -tag v3.0 (打包时候这样使用，后面的v3.0参数可以使
 
 python ipa.py (tag不写，默认是master)
 
+***
 
+2016.03.04更新：
+
+> 修改远程SSH连接打包失败的问题，添加设置参数keychainPassword
+(选填)远程SSH连接打包的话需要设置这个参数，内容为你电脑的密码
 
 
 
