@@ -87,6 +87,12 @@ python ipa.py (tag不写，默认是master)
 > 修改远程SSH连接打包失败的问题，添加设置参数keychainPassword
 (选填)远程SSH连接打包的话需要设置这个参数，内容为你电脑的密码
 
+***
+
+2016.08.17更新:
+
+> 添加对workspace的支持
+
 
 
 

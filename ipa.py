@@ -38,6 +38,9 @@ emailToUser = None
 emailPassword = None
 emailHost = None
 
+#判断是否是workspace
+isWorkSpace = False
+
 #版本
 tag = "master"
 
@@ -285,7 +288,11 @@ def setGitVersionMaster():
  
 #clean工程   
 def cleanPro():
-    os.system('cd %s;xcodebuild -target %s clean'%(mainPath,targetName))
+    global isWorkSpace
+    if isWorkSpace:
+        os.system('cd %s;xcodebuild -workspace %s.xcworkspace -scheme %s clean'%(mainPath,targetName,targetName))
+    else:
+        os.system('cd %s;xcodebuild -target %s clean'%(mainPath,targetName))
     return
 
 #清理pbxproj文件
@@ -316,6 +323,7 @@ def allowKeychain():
 
 #编译获取.app文件和dsym
 def buildApp():
+    global isWorkSpace
     files_list=scan_files(mainPath,postfix=".xcodeproj")
     temp = -1
     for k in range(len(files_list)):
@@ -330,13 +338,16 @@ def buildApp():
         path=target.replace(name,"")
         path=path[0:len(path)-1]
         os.system("cd %s;xcodebuild -target %s CODE_SIGN_IDENTITY='%s'"%(path,name,certificateName))
-    os.system("cd %s;xcodebuild -target %s CODE_SIGN_IDENTITY='%s'"%(mainPath,targetName,certificateName))
+    if isWorkSpace:
+        os.system("cd %s;xcodebuild -workspace %s.xcworkspace -scheme %s CODE_SIGN_IDENTITY='%s' -derivedDataPath build/"%(mainPath,targetName,targetName,certificateName))
+    else:
+        os.system("cd %s;xcodebuild -target %s CODE_SIGN_IDENTITY='%s'"%(mainPath,targetName,certificateName))
     return
     
 #创建ipa
 def cerateIPA():
     os.system ("cd %s;rm -r -f %s.ipa"%(mainPath,targetName))
-    os.system ("cd %s;xcrun -sdk iphoneos PackageApplication -v %s/build/Release-iphoneos/%s.app -o %s/%s.ipa CODE_SIGN_IDENTITY='%s'"%(mainPath,mainPath,targetName,mainPath,targetName,certificateName))
+    os.system ("cd %s;xcrun -sdk iphoneos PackageApplication -v %s/build/Build/Products/Debug-iphoneos/%s.app -o %s/%s.ipa CODE_SIGN_IDENTITY='%s'"%(mainPath,mainPath,targetName,mainPath,targetName,certificateName))
     return
     
 #上传
@@ -407,6 +418,15 @@ def setVersion():
     setGitVersion(tag)
     return
 
+#判断是否是workspace
+def checkWorkSpace():
+    global isWorkSpace
+    if os.path.exists("%s/%s.xcworkspace"%(mainPath,targetName)):
+        isWorkSpace = True
+    else:
+        isWorkSpace = False
+    return
+
 #主函数
 def main():
     #设置配置文件路径
@@ -426,6 +446,8 @@ def main():
         gitClone()
     else:
         gitPull()
+    #判断是否是workspace
+    checkWorkSpace()
     #设置版本
     setVersion()
     #设置文件夹权限
